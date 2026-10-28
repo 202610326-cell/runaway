@@ -1,0 +1,5 @@
+{
+  "summary": "게임 전체 상태(MainMenu/Playing/Paused/GameOver)를 관리하는 싱글톤 GameManager. Esc 일시정시, 한정선 획득 이벤트, 게임 오버 트리거, 재시작 구현.",
+  "updatedAt": "2026-10-28T05:11:33.222864100Z",
+  "userFacing": true
+}

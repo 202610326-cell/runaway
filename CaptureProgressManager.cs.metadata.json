@@ -1,0 +1,5 @@
+{
+  "summary": "보조 슱글톤. ChaserAI의 CaptureProgress를 HUDController와 PlayerMovement에 중계하는 CaptureProgressManager 스크립트. 여러 추격자가 동시에 접근할 때 가장 높은 진행도만 유효하게 쳄리한다.",
+  "updatedAt": "2026-10-28T05:13:55.168508300Z",
+  "userFacing": true
+}

@@ -1,0 +1,5 @@
+{
+  "summary": "추격자 AI. Patrol/Chase/Search/Capture 4가지 상태머신, NavMeshAgent 경로 탐색, 시야각 110도\b7c9 감지 12m, 붙잊기 거리 1.3m 판정, 다수 추격자 목표위치 분산을 구현한 ChaserAI 스크립트.",
+  "updatedAt": "2026-10-28T05:10:41.914103900Z",
+  "userFacing": true
+}

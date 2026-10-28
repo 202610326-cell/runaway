@@ -1,0 +1,5 @@
+{
+  "summary": "E키로 한정선 획득하는 PlayerInteraction 스크립트. 반경 내 HanJeongSeon 오브젝트 감지, 획득 시 GameManager와 ScoreManager에 이벤트 전달.",
+  "updatedAt": "2026-10-28T05:09:34.424545500Z",
+  "userFacing": true
+}

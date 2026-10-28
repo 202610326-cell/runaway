@@ -1,0 +1,5 @@
+{
+  "summary": "생존 타이머와 5단계 난이도 시스템. 0~30s/30~60s/60~120s/120~180s/180s+ 단계별 SpawnInterval, 속도 배율, 추가 스폰 조절을 구현한 SurvivalManager 스크립트.",
+  "updatedAt": "2026-10-28T05:11:57.754203100Z",
+  "userFacing": true
+}

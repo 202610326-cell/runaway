@@ -1,0 +1,5 @@
+{
+  "summary": "3인칭 카메라. 마우스로 Orbit 회전, 벽 통과 방지(Raycast), 달리기 시 약한 카메라 흔들림을 구현한 ThirdPersonCamera 스크립트.",
+  "updatedAt": "2026-10-28T05:10:00.991435Z",
+  "userFacing": true
+}

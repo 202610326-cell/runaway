@@ -1,0 +1,5 @@
+{
+  "summary": "플레이어 이동(WASD), 달리기(Shift), 점프(Space), 스태미나 시스템을 구현하는 CharacterController 기반 스크립트. GameManager 연동, 카메라 기준 이동 방향, 붙잊힌 상태 처리 포함.",
+  "updatedAt": "2026-10-28T05:09:17.321269200Z",
+  "userFacing": true
+}

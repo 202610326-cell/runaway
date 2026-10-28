@@ -1,0 +1,5 @@
+{
+  "summary": "추격자 스폰 관리. SurvivalManager 단계에 따라 SpawnInterval 조절, 최대 20명 제한, 플레이어와 최소 거리 유지 스폰 위치 선정을 구현한 ChaserSpawner 스크립트.",
+  "updatedAt": "2026-10-28T05:11:08.575794800Z",
+  "userFacing": true
+}

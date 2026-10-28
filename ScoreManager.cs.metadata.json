@@ -1,0 +1,5 @@
+{
+  "summary": "점수 계산 및 PlayerPrefs 기반 최고 기록 저장. 생존 1초당 10점, 한정선 도득 보너스, 단계 진입 보너스를 구현한 ScoreManager 스크립트.",
+  "updatedAt": "2026-10-28T05:12:21.459943800Z",
+  "userFacing": true
+}
