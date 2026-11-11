@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// E키로 한정선을 획득한다.
-/// HanJeongSeon 태그를 가진 오브젝트를 감지하고 상호작용한다.
+/// interactLayer 레이어에 포함된 오브젝트를 감지하고 상호작용한다.
 /// </summary>
 public class PlayerInteraction : MonoBehaviour
 {
@@ -12,6 +12,12 @@ public class PlayerInteraction : MonoBehaviour
 
     // 한정선 보유 여부
     public bool HasHanJeongSeon { get; private set; }
+
+    private void Start()
+    {
+        // 씬 재로드 후 초기화 보장
+        HasHanJeongSeon = false;
+    }
 
     private void Update()
     {
@@ -27,7 +33,7 @@ public class PlayerInteraction : MonoBehaviour
         // 이미 획득한 경우 중복 획득 방지
         if (HasHanJeongSeon) return;
 
-        // 반경 내 HanJeongSeon 오브젝트 탐색
+        // 반경 내 한정선 오브젝트 탐색
         Collider[] hits = Physics.OverlapSphere(transform.position, interactRange, interactLayer);
 
         float   closestDist = float.MaxValue;
@@ -35,7 +41,8 @@ public class PlayerInteraction : MonoBehaviour
 
         foreach (Collider hit in hits)
         {
-            HanJeongSeonItem item = hit.GetComponent<HanJeongSeonItem>();
+            // 콜라이더가 자식 오브젝트에 있을 수 있으므로 부모까지 탐색한다.
+            HanJeongSeonItem item = hit.GetComponentInParent<HanJeongSeonItem>();
             if (item == null || item.IsCollected) continue;
 
             float dist = Vector3.Distance(transform.position, hit.transform.position);

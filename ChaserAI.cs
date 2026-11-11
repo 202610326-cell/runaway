@@ -5,6 +5,13 @@ using UnityEngine.AI;
 /// 추격자 AI.
 /// 상태 머신: Patrol → Chase → Search → Capture
 /// NavMeshAgent로 경로를 탐색하고, 시야각+거리로 플레이어를 감지한다.
+///
+/// [FIX] 시야 판정 버그 수정
+///   이전 코드는 Physics.Raycast 결과가 true이기만 하면 "시야 차단"으로 처리했다.
+///   sightMask에 플레이어 레이어가 포함되어 있으면 플레이어 몸통에 맞아서
+///   항상 시야가 막힌 것으로 판정 → 추격자가 플레이어를 전혀 발견하지 못했다.
+///   이제는 플레이어 콜라이더를 명시적으로 제외하고, 가장 가까운 '실제 장애물'과의
+///   거리로 시야 차단 여부를 판단한다.
 /// </summary>
 [RequireComponent(typeof(NavMeshAgent))]
 public class ChaserAI : MonoBehaviour
@@ -15,9 +22,15 @@ public class ChaserAI : MonoBehaviour
     [SerializeField] private float fieldOfView     = 110f;   // 시야각 (도)
     [SerializeField] private LayerMask sightMask;
 
+    [Header("Eye Height")]
+    [Tooltip("추격자의 눈 높이 (피드 기준, m)")]
+    [SerializeField] private float eyeHeight       = 1.2f;
+    [Tooltip("플레이어의 눈 높이 (피드 기준, m)")]
+    [SerializeField] private float playerEyeHeight = 0.9f;
+
     // ─── 붙잡기 설정 ─────────────────────────────────────────────
     [Header("Capture")]
-    [SerializeField] private float captureRange    = 1.3f;
+    [SerializeField] private float captureRange    = 1.3m;
     [SerializeField] private float captureSpeed    = 1f;     // 초당 CaptureProgress 증가량
     [SerializeField] private float captureDecay    = 0.5f;   // 거리 벌어질 때 초당 감소량
 
@@ -31,6 +44,7 @@ public class ChaserAI : MonoBehaviour
     // ─── 목표 분산 ───────────────────────────────────────────────
     [Header("Spread")]
     [SerializeField] private float spreadRadius = 0.8f;      // 추격자끼리 목표 분산 반경
+    [SerializeField] private float spreadRefreshInterval = 0.35f; // 분산 목표 갱신 주기(초)
 
     // ─────────────────────────────────────────────────────────────
     public enum State { Patrol, Chase, Search, Capture }
@@ -42,6 +56,12 @@ public class ChaserAI : MonoBehaviour
     private float         searchTimer;
     private float         captureProgress;
     private Vector3       patrolTarget;
+
+    // 시야 판정용 버퍼 (프레임마다 할당하지 않기 위해 재사용)
+    private static readonly RaycastHit[] sightHits = new RaycastHit[16];
+
+    private Vector3 chaseDestination;
+    private float   spreadTimer;
 
     // 속도 배율 (SurvivalManager에서 조정)
     public float SpeedMultiplier { get; set; } = 1f;
@@ -126,16 +146,25 @@ public class ChaserAI : MonoBehaviour
             return;
         }
 
-        // 목표 위치에 약간의 분산을 줘서 여러 추격자가 겹치지 않게 함
-        Vector3 spread      = Random.insideUnitSphere * spreadRadius;
-        spread.y            = 0f;
-        Vector3 destination = playerTransform.position + spread;
+        // 목표 위치에 약간의 분산을 줘서 여러 추격자가 겹치지 않게 한다.
+        // [FIX] 매 프레임 새로 뽑으면 목적지가 계속 흔들려(지터) 추격이 어색해진다.
+        //       갱신 주기를 두고 재사용한다.
+        spreadTimer -= Time.deltaTime;
+        if (spreadTimer <= 0f || chaseDestination == Vector3.zero)
+        {
+            spreadTimer = spreadRefreshInterval;
 
-        if (NavMesh.SamplePosition(destination, out NavMeshHit hit, spreadRadius + 1f, NavMesh.AllAreas))
-            agent.SetDestination(hit.position);
-        else
-            agent.SetDestination(playerTransform.position);
+            Vector3 spread      = Random.insideUnitSphere * spreadRadius;
+            spread.y            = 0f;
+            Vector3 destination = playerTransform.position + spread;
 
+            if (NavMesh.SamplePosition(destination, out NavMeshHit hit, spreadRadius + 1f, NavMesh.AllAreas))
+                chaseDestination = hit.position;
+            else
+                chaseDestination = playerTransform.position;
+        }
+
+        agent.SetDestination(chaseDestination);
         lastKnownPosition = playerTransform.position;
     }
 
@@ -196,21 +225,49 @@ public class ChaserAI : MonoBehaviour
     {
         if (playerTransform == null) return false;
 
-        Vector3 toPlayer = playerTransform.position - transform.position;
+        // [FIX] Raycast 시작점을 1m 올리면서 길이는 수평거리로 두어 1m 부족했던 문제를 해결.
+        //        눈/가슴 높이를 양쪽 다 명시해 3D 거리 기준으로 판정한다.
+        Vector3 eyePos    = transform.position       + Vector3.up * eyeHeight;
+        Vector3 targetPos = playerTransform.position + Vector3.up * playerEyeHeight;
+
+        Vector3 toPlayer = targetPos - eyePos;
         float   dist     = toPlayer.magnitude;
 
         if (dist > detectionRange) return false;
+        if (dist < 0.001f) return true;
 
         // 시야각 확인
         float angle = Vector3.Angle(transform.forward, toPlayer);
         if (angle > fieldOfView * 0.5f) return false;
 
-        // 장애물 확인 (Raycast)
-        if (Physics.Raycast(transform.position + Vector3.up * 1f,
-                            toPlayer.normalized, dist, sightMask))
-            return false;
+        Vector3 dir = toPlayer / dist;
 
-        return true;
+        // 장애물 확인.
+        // Raycast는 '어디에' 맞았는지와 무관하게 true를 반환하므로,
+        // 플레이어 콜라이더는 시야 차단 대상에서 제외해야 한다.
+        int hitCount = Physics.RaycastNonAlloc(eyePos, dir, sightHits, dist,
+                                               sightMask, QueryTriggerInteraction.Ignore);
+
+        float closestBlocker = float.MaxValue;
+        for (int i = 0; i < hitCount; i++)
+        {
+            if (IsPlayerTransform(sightHits[i].transform)) continue;  // 플레이어 자신은 제외
+            if (sightHits[i].distance < closestBlocker)
+                closestBlocker = sightHits[i].distance;
+        }
+
+        // 플레이어까지 시야가 확보되면 보인 것
+        return closestBlocker >= dist - 0.05f;
+    }
+
+    /// <summary>해당 트랜스폼이 플레이어(또는 플레이어의 일부)인지 판정</summary>
+    private bool IsPlayerTransform(Transform t)
+    {
+        if (t == null || playerTransform == null) return false;
+        if (t == playerTransform) return true;              // 플레이어 자신
+        if (t.IsChildOf(playerTransform)) return true;      // 플레이어의 자식 (장비 등)
+        if (playerTransform.IsChildOf(t)) return true;      // 플레이어를 포함하는 부모
+        return false;
     }
 
     // ─── 상태 전환 ───────────────────────────────────────────────
@@ -222,13 +279,14 @@ public class ChaserAI : MonoBehaviour
         {
             case State.Patrol:
                 agent.isStopped = false;
-                agent.speed     = patrolSpeed;
+                agent.speed     = patrolSpeed * SpeedMultiplier;
                 SetPatrolTarget();
                 break;
 
             case State.Chase:
                 agent.isStopped = false;
                 agent.speed     = chaseSpeed * SpeedMultiplier;
+                spreadTimer     = 0f;                       // 분산 목표 즉시 재계산
                 break;
 
             case State.Search:
@@ -240,6 +298,8 @@ public class ChaserAI : MonoBehaviour
 
             case State.Capture:
                 agent.isStopped = true;
+                // [FIX] 무피격 보너스 취소를 위해 피격 사실 기록 (이전엔 호출처가 없었음)
+                ScoreManager.Instance?.RegisterHit();
                 break;
         }
     }
@@ -249,7 +309,7 @@ public class ChaserAI : MonoBehaviour
     {
         // 감지 범위
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
+        Gizmos.DrawWireSphere(transform.position + Vector3.up * eyeHeight, detectionRange);
 
         // 붙잡기 범위
         Gizmos.color = Color.red;

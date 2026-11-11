@@ -59,7 +59,13 @@ public class GameOverUI : MonoBehaviour
             highScoreText.text = $"최고 기록: {highScore:N0}점";
 
         // 신기록 여부
-        bool isNewRecord = score >= highScore && score > 0;
+        // [FIX] GameManager가 최고 기록을 저장한 뒤에 이벤트를 발생시키므로
+        //       여기서 비교하면 항상 최고점 == 현재점이 되어 "신기록!"이 항상 뜬다.
+        //       GameManager가 저장 전 비교한 결과를 그대로 사용한다.
+        bool isNewRecord = GameManager.Instance != null
+                           ? GameManager.Instance.LastGameWasNewRecord
+                           : (score >= highScore && score > 0);
+
         if (newRecordText != null) newRecordText.gameObject.SetActive(isNewRecord);
     }
 

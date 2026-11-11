@@ -25,12 +25,13 @@ public class ScoreManager : MonoBehaviour
     public event System.Action<int> OnScoreChanged;
     public event System.Action<int> OnBonusEarned;   // 보너스 발생 시 UI 팝업용
 
-    // ─── Private ─────────────────────────────────────────────────
+    // ─── Private 필드 ─────────────────────────────────────────────
     private float  scoreAccumulator;   // 소수점 점수 누적용
     private float  noHitTimer;
     private bool   wasHit;
 
-    private const string HighScoreKey = "HanJeongSeon_HighScore";
+    /// <summary>최고 기록 PlayerPrefs 키 (MainMenuUI 등에서 공유)</summary>
+    public const string HighScoreKey = "HanJeongSeon_HighScore";
 
     private void Awake()
     {

@@ -22,7 +22,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float staminaRegenRate  = 10f;
     [SerializeField] private float staminaRegenDelay = 1.5f;
 
-    // ─── 카메라 참조 ─────────────────────────────────────────────
+    // ─── 카메라 참조 ───────────────────────────────────────────────
     [Header("References")]
     [SerializeField] private Transform cameraTransform;
 
@@ -40,6 +40,9 @@ public class PlayerMovement : MonoBehaviour
     private float   regenTimer;
     private bool    isRunning;
     private bool    isCaptured;
+
+    // 붙잡힘 진행도에 따른 이동 속도 배율 (1 = 정상)
+    private float   captureFactor = 1f;
 
     public event System.Action OnJump;
     public event System.Action OnLand;
@@ -73,8 +76,9 @@ public class PlayerMovement : MonoBehaviour
 
         if (input.magnitude < 0.01f)
         {
-            isRunning  = false;
-            regenTimer = 0f;
+            isRunning = false;
+            // [FIX] regenTimer를 0으로 밀어버리지 않는다.
+            //       이렇게 해야 "달린 뒤 1.5초 뒤 회복" 규칙이 정지 상태에서도 동일하게 적용된다.
             RegenerateStamina();
             return;
         }
@@ -85,7 +89,8 @@ public class PlayerMovement : MonoBehaviour
         if (isRunning) DrainStamina();
         else           RegenerateStamina();
 
-        float speed = isRunning ? runSpeed : walkSpeed;
+        // [FIX] 붙잡힘 진행도로 인해 이동 속도가 낮아질 수 있다.
+        float speed = (isRunning ? runSpeed : walkSpeed) * captureFactor;
 
         Vector3 camForward = cameraTransform.forward;
         Vector3 camRight   = cameraTransform.right;
@@ -139,6 +144,10 @@ public class PlayerMovement : MonoBehaviour
         stamina = Mathf.Min(maxStamina, stamina + staminaRegenRate * Time.deltaTime);
     }
 
+    /// <summary>붙잡힘 진행도에 따른 이동 속도 배율 (1 = 정상, 0 = 정지)</summary>
+    public void SetCaptureFactor(float factor) => captureFactor = Mathf.Clamp01(factor);
+
     public void SetCaptured(bool captured) => isCaptured = captured;
-    public float GetStaminaRatio()         => stamina / maxStamina;
+
+    public float GetStaminaRatio() => stamina / maxStamina;
 }

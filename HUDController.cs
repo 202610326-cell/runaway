@@ -43,9 +43,13 @@ public class HUDController : MonoBehaviour
     private SurvivalManager   survivalManager;
     private ScoreManager      scoreManager;
 
+    // [FIX] StopCoroutine(nameof(...))는 IEnumerator 오버로드로 시작한 코루틴을
+    //       중단하지 못한다. Coroutine 참조를 직접 보관해야 한다.
+    private Coroutine notificationCoroutine;
+
     private void Start()
     {
-        playerMovement  = FindObjectOfType<PlayerMovement>();
+        playerMovement  = FindFirstObjectByType<PlayerMovement>();
         survivalManager = SurvivalManager.Instance;
         scoreManager    = ScoreManager.Instance;
 
@@ -72,7 +76,7 @@ public class HUDController : MonoBehaviour
             screenVignette.color = c;
         }
 
-        UpdateScoreDisplay(0);
+        UpdateScoreDisplay(scoreManager != null ? scoreManager.CurrentScore : 0);
     }
 
     private void Update()
@@ -127,8 +131,15 @@ public class HUDController : MonoBehaviour
     private void ShowStageNotification(int stageIdx, string stageName)
     {
         if (stageText != null) stageText.text = stageName;
-        StopCoroutine(nameof(NotificationCoroutine));
-        StartCoroutine(NotificationCoroutine(stageName));
+
+        // [FIX] 이전 알림 코루틴을 제대로 중단해야 새 알림이 즉시 표시된다.
+        if (notificationCoroutine != null)
+        {
+            StopCoroutine(notificationCoroutine);
+            notificationCoroutine = null;
+        }
+
+        notificationCoroutine = StartCoroutine(NotificationCoroutine(stageName));
     }
 
     private IEnumerator NotificationCoroutine(string name)
@@ -139,6 +150,8 @@ public class HUDController : MonoBehaviour
         stageNotificationPanel.SetActive(true);
         yield return new WaitForSeconds(notificationDuration);
         stageNotificationPanel.SetActive(false);
+
+        notificationCoroutine = null;
     }
 
     // ─── 한정선 획득 아이콘 ──────────────────────────────────────
@@ -151,5 +164,10 @@ public class HUDController : MonoBehaviour
     {
         if (scoreManager    != null) scoreManager.OnScoreChanged    -= UpdateScoreDisplay;
         if (survivalManager != null) survivalManager.OnStageChanged -= ShowStageNotification;
+
+        // [FIX] GameManager는 DontDestroyOnLoad라 이벤트를 참조로 계속 들고 있다.
+        //       구독 해제를 빠뜨리면 씬 전환 후에도 죽은 HUD가 계속 호출된다.
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnHanJeongSeonGet -= ShowHanJeongSeonIcon;
     }
 }

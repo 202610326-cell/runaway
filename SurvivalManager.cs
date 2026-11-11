@@ -22,11 +22,11 @@ public class SurvivalManager : MonoBehaviour
     [Header("Difficulty Stages")]
     [SerializeField] private DifficultyStage[] stages = new DifficultyStage[]
     {
-        new DifficultyStage { stageName="1단계", startTime=0f,   spawnInterval=8f,  speedMultiplier=1.0f, bonusScore=0    },
-        new DifficultyStage { stageName="2단계", startTime=30f,  spawnInterval=6f,  speedMultiplier=1.1f, bonusScore=500  },
-        new DifficultyStage { stageName="3단계", startTime=60f,  spawnInterval=4f,  speedMultiplier=1.2f, bonusScore=1000 },
-        new DifficultyStage { stageName="4단계", startTime=120f, spawnInterval=2.5f,speedMultiplier=1.35f,bonusScore=2000 },
-        new DifficultyStage { stageName="5단계", startTime=180f, spawnInterval=1.5f,speedMultiplier=1.5f, bonusScore=3000 },
+        new DifficultyStage { stageName="1단계", startTime=0f,   spawnInterval=8f,  speedMultiplier=1.0f,  bonusScore=0    },
+        new DifficultyStage { stageName="2단계", startTime=30f,  spawnInterval=6f,  speedMultiplier=1.1f,  bonusScore=500  },
+        new DifficultyStage { stageName="3단계", startTime=60f,  spawnInterval=4f,  speedMultiplier=1.2f,  bonusScore=1000 },
+        new DifficultyStage { stageName="4단계", startTime=120f, spawnInterval=2.5f,speedMultiplier=1.35f, bonusScore=2000 },
+        new DifficultyStage { stageName="5단계", startTime=180f, spawnInterval=1.5f, speedMultiplier=1.5f,  bonusScore=3000 },
     };
 
     // ─── 공개 속성 ───────────────────────────────────────────────
@@ -69,6 +69,17 @@ public class SurvivalManager : MonoBehaviour
 
     public void StopSurvival() => isSurviving = false;
 
+    /// <summary>
+    /// 런 초기화. 재시작 시 생존 타이머와 단계 상태를 되돌린다.
+    /// (단계 적용은 StartSurvival()에서 수행하므로 여기서는 하지 않는다)
+    /// </summary>
+    public void ResetRun()
+    {
+        isSurviving     = false;
+        SurvivalTime    = 0f;
+        CurrentStageIdx = 0;
+    }
+
     // ─── 단계 진행 확인 ──────────────────────────────────────────
     private void CheckStageProgression()
     {
@@ -87,7 +98,7 @@ public class SurvivalManager : MonoBehaviour
         }
     }
 
-    // ─── 난이도 적용 ─────────────────────────────────────────────
+    // ─── 난이도 적용 ──────────────────────────────────────────────
     private void ApplyStage(int idx)
     {
         if (idx < 0 || idx >= stages.Length) return;
